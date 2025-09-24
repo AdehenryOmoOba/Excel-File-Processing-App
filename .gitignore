@@ -22,7 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-test_sheet.xlsx
+
 
 # Backend - .NET (ExcelProcessorAPI)
 # Ignore build outputs and intermediate files for backend projects
