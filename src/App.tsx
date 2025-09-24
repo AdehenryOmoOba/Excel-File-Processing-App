@@ -10,18 +10,31 @@ import SheetTabs from './components/SheetTabs';
 import DataTable from './components/DataTable';
 import ActionButtons from './components/ActionButtons';
 
+// Pages
+import SessionsPage from './pages/SessionsPage';
+import DataViewPage from './pages/DataViewPage';
+
 // Services & Types
 import { ExcelProcessorService } from './services/excelService';
+import { ApiService } from './services/apiService';
 import type { ProcessedData, Statistics as StatsType } from './types';
 
+type ViewMode = 'upload' | 'sessions' | 'dataView';
+
 function App() {
+  console.log('App component is rendering with new data view...'); // Debug log
+  
+  // Navigation State
+  const [currentView, setCurrentView] = useState<ViewMode>('upload');
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  
   // State Management
   const [file, setFile] = useState<File | null>(null);
   const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null);
   const [processedData, setProcessedData] = useState<ProcessedData>({});
   const [excludedSheets, setExcludedSheets] = useState<Set<string>>(new Set());
   const [currentSheet, setCurrentSheet] = useState<string | null>(null);
-  const [exclusionPatterns, setExclusionPatterns] = useState('Summary, Template');
+  const [exclusionPatterns, setExclusionPatterns] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showData, setShowData] = useState(false);
@@ -99,30 +112,39 @@ function App() {
     });
   };
 
-  // Save to database
+  // Save to database via API
   const handleSaveToDatabase = async () => {
+    if (!file || !processedData) {
+      alert('No data to save');
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const payload = {
-        sheets: processedData,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          totalSheets: Object.keys(processedData).length,
-          excludedSheets: Array.from(excludedSheets),
-        },
-      };
+      // Transform the data to the API format
+      const uploadPayload = ApiService.transformToUploadPayload(
+        file.name,
+        processedData,
+        excludedSheets,
+        'Excel Processor User' // Could be from user input or authentication
+      );
 
-      // Simulate API call (replace with actual API endpoint)
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log('Data to save:', payload);
+      console.log('Uploading data to database...', uploadPayload.fileName);
       
-      // In production, you would make an actual API call:
-      // await axios.post('http://localhost:5001/api/excel/save', payload);
+      const response = await ApiService.uploadExcelData(uploadPayload);
       
-      alert('Data saved successfully!');
-    } catch (error) {
-      console.error('Error saving data:', error);
-      alert('Error saving data. Please try again.');
+      console.log('Upload response:', response);
+      
+      alert(`Data saved successfully!\n\n` +
+            `Session ID: ${response.sessionId}\n` +
+            `Processed Sheets: ${response.processedSheets}\n` +
+            `Total Rows: ${response.totalRows}\n` +
+            `Processing Time: ${response.processingTime}\n\n` +
+            `${response.message}`);
+      
+    } catch (error: any) {
+      console.error('Error saving data to database:', error);
+      alert(`Error saving data: ${error.message || 'Please try again.'}`);
     } finally {
       setIsSaving(false);
     }
@@ -144,8 +166,48 @@ function App() {
     // Keep exclusion patterns for next upload
   };
 
+  // Navigation handlers
+  const handleNavigateToSessions = () => {
+    setCurrentView('sessions');
+  };
+
+  const handleBackToUpload = () => {
+    setCurrentView('upload');
+    setSelectedSessionId(null);
+  };
+
+  const handleViewSession = (sessionId: string) => {
+    setSelectedSessionId(sessionId);
+    setCurrentView('dataView');
+  };
+
+  const handleBackToSessions = () => {
+    setCurrentView('sessions');
+    setSelectedSessionId(null);
+  };
+
   const currentSheetData = currentSheet ? processedData[currentSheet] : null;
 
+  // Render different views based on currentView state
+  if (currentView === 'sessions') {
+    return (
+      <SessionsPage 
+        onBack={handleBackToUpload}
+        onViewSession={handleViewSession}
+      />
+    );
+  }
+
+  if (currentView === 'dataView' && selectedSessionId) {
+    return (
+      <DataViewPage 
+        sessionId={selectedSessionId}
+        onBack={handleBackToSessions}
+      />
+    );
+  }
+
+  // Default upload view
   return (
     <div className="app">
       <div className="container">
@@ -155,6 +217,11 @@ function App() {
           </div>
           <h1>Excel File Processor</h1>
           <p>Upload, Process, Preview & Save Excel Data</p>
+          <div className="header-nav">
+            <button className="nav-button" onClick={handleNavigateToSessions}>
+              📊 View Stored Data
+            </button>
+          </div>
         </div>
 
         <div className="content">
