@@ -192,8 +192,8 @@ const DataTable: React.FC<DataTableProps> = ({ sheetData, onDataUpdate, isVisibl
                       <input
                         type="text"
                         className="cell-input"
-                        value={row[header] || 'N/A'}
-                        title={row[header] || 'N/A'}
+                        value={row[header] !== null && row[header] !== undefined ? String(row[header]) : 'N/A'}
+                        title={row[header] !== null && row[header] !== undefined ? String(row[header]) : 'N/A'}
                         onChange={(e) =>
                           handleCellEdit(rowIndex, header, e.target.value)
                         }
