@@ -23,3 +23,28 @@ dist-ssr
 *.sln
 *.sw?
 test_sheet.xlsx
+
+# Backend - .NET (ExcelProcessorAPI)
+# Ignore build outputs and intermediate files for backend projects
+backend/**/bin/
+backend/**/obj/
+
+# Ignore publish output
+backend/**/publish/
+
+# Visual Studio workspace folder (local user data)
+.vs/
+
+# Ignore local launch and debug settings
+backend/**/launchSettings.json
+
+# Ignore appsettings files that may be generated into build output
+backend/**/bin/**/appsettings*.json
+
+# NuGet / package artifacts
+packages/
+*.nupkg
+
+# Local user files
+*.user
+*.userosscache
